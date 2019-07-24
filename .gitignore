@@ -1,4 +1,5 @@
 .idea/*
+tickers.txt
 
 ### JupyterNotebooks template
 # gitignore template for Jupyter Notebooks
