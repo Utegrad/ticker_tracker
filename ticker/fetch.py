@@ -10,24 +10,13 @@ def fetch_unique_tickers(f):
     :return: list of unique Ticker() objects
     """
     ticker_objects = []
-    all_ticker_strs = []
 
     reader = csv.DictReader(f)
     for row in reader:
-        all_ticker_strs.append(row['<ticker>'])
+        ticker_objects.append(Ticker(ticker=row['<ticker>']))
 
-    tickers_set = remove_duplicates(all_ticker_strs)
+    tickers_set = dedupe(ticker_objects, 'ticker')
 
-    for t in tickers_set:
-        ticker = Ticker()
-        ticker.ticker = t
-        ticker_objects.append(ticker)
-
-    return ticker_objects
-
-
-def remove_duplicates(all_ticker_strs):
-    tickers_set = set(all_ticker_strs)
     return tickers_set
 
 
