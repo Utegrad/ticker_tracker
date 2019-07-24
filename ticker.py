@@ -5,7 +5,7 @@ class Ticker:
 
     def __str__(self):
         if self.name:
-            return f"{self.name} ({self.ticker})"
+            return f"{self.ticker} ({self.name})"
         else:
             return f"{self.ticker}"
 

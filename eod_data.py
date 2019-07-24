@@ -32,7 +32,7 @@ class EODData:
     @date.setter
     def date(self, value):
         try:
-            self._date = datetime.strptime(value, '%Y%m%d')
+            self._date = datetime.strptime(value, "%Y%m%d")
         except Exception as e:
             raise e
 
