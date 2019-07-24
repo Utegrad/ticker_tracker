@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from ticker import Ticker
+from ticker.ticker import Ticker
 
 
 class EODData:

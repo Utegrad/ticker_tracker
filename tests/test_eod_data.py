@@ -4,22 +4,12 @@ from decimal import *
 import pytest
 
 from eod_data import EODData
-from ticker import Ticker
+from ticker.ticker import Ticker
 
 ticker_test_values = [
     ("abc", "20190101", "12.34", "13.45", "11.45", "12.45", 100000),
     ("AA", "20190722", 23.18, 23.3901, 22.695, 22.98, 3719200),
 ]
-
-
-def test_ticker_str_value():
-    ticker = Ticker(ticker="ABC", name="A B C Company")
-    assert ticker.__str__() == "ABC (A B C Company)"
-
-
-def test_ticker_str_no_name():
-    ticker = Ticker(ticker="ABC")
-    assert ticker.__str__() == "ABC"
 
 
 @pytest.mark.parametrize(
