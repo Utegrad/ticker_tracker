@@ -1,6 +1,6 @@
 import io
 
-from ticker.fetch import fetch_tickers_unique
+from ticker.fetch import fetch_unique_tickers, dedupe
 from ticker.ticker import Ticker
 
 csv_content_string = """<ticker>,<date>,<open>,<high>,<low>,<close>,<vol>
@@ -33,11 +33,32 @@ def test_ticker_str_no_name():
 
 def test_tickers_from_csv():
     f = io.StringIO(csv_content_string)
-    tickers = fetch_tickers_unique(f)
+    tickers = fetch_unique_tickers(f)
     assert any([i for i in tickers if i.ticker == "AAN"])
 
 
 def test_tickers_from_csv_with_duplicates():
     f = io.StringIO(csv_string_with_duplicates)
-    tickers = fetch_tickers_unique(f)
+    tickers = fetch_unique_tickers(f)
     assert len([i for i in tickers if i.ticker == "AAN"]) == 1
+
+
+def test_dedupe_no_dupes_count():
+    t1 = Ticker(ticker='A', )
+    t2 = Ticker(ticker='B', )
+    objs = [t1, t2]
+    k = 'ticker'
+    result = dedupe(objs, k)
+    assert len(result) == 2
+    assert any([i for i in result if i.ticker == 'A'])
+
+
+def test_dedupe_with_dupes_count():
+    t1 = Ticker(ticker='A', )
+    t2 = Ticker(ticker='B', )
+    t3 = Ticker(ticker='A', )
+    objs = [t1, t2, t3]
+    k = 'ticker'
+    result = dedupe(objs, k)
+    assert len(result) == 2
+    assert any([i for i in result if i.ticker == 'A'])
