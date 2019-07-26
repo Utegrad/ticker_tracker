@@ -7,13 +7,16 @@ from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
-MAX_WAIT = 15
+MAX_WAIT = 10
 
 logging.basicConfig(
     filename='download.log',
     level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s: %(message)s',
 )
+logging.getLogger('urllib3').setLevel(logging.WARNING)
+logging.getLogger('selenium').setLevel(logging.INFO)
+
 logger = logging.getLogger(__name__)
 
 
@@ -78,7 +81,8 @@ def history():
                 ticker = line.strip().capitalize()
                 percent = 100 * (idx/ticker_count)
                 print(f"Getting '{ticker}' - {percent:.2f}%")
-                url = f"https://finance.yahoo.com/quote/{ticker}/history"
+                url = f"https://finance.yahoo.com/quote/{ticker}/history?p={ticker}"
+                logger.info(f"Getting history for {ticker}")
                 try:
                     download(driver, url)
                 except Exception as e:
@@ -87,10 +91,11 @@ def history():
                         logger.warning(e.message)
                     else:
                         logger.warning(e)
+                    continue
 
 
 def download(driver, url):
-    logger.debug(f"Getting URL: {url}")
+    logger.info(f"Getting URL: {url}")
     driver.get(url)
     logger.debug(f"Finding input element by xpath")
     time_period_input = driver.find_element_by_xpath("//input[@data-test='date-picker-full-range']")
@@ -110,6 +115,8 @@ def download(driver, url):
     download_link = driver.find_element_by_xpath("//a[@download]")
     logger.debug("Clicking download link")
     download_link.click()
+    logger.debug("Sleep 3 seconds")
+    time.sleep(3)
 
 
 if __name__ == "__main__":
