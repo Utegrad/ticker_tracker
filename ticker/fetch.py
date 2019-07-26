@@ -24,7 +24,7 @@ def fetch_unique_tickers(f, fn=None):
             except TypeError:
                 continue  # appears to encounter a type error at the end of the csv file
             except decimal.InvalidOperation:
-                continue  # encountered when a filtered CSV field is empty
+                continue  # encountered when a filtered CSV field is empty.  Skip it since it's empty
             except Exception as e:
                 raise e
         else:
