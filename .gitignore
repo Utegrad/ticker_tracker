@@ -1,5 +1,9 @@
 .idea/*
 tickers.txt
+downloads/*
+*_download.zip
+NASDAQ_*
+NYSE_*
 
 ### JupyterNotebooks template
 # gitignore template for Jupyter Notebooks

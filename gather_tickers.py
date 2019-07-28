@@ -5,7 +5,7 @@ from ticker.fetch import fetch_unique_tickers, dedupe
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-in_files = ("NASDAQ_20190722.txt", "NYSE_20190722.txt")
+in_files = ("NASDAQ_20190725.txt", "NYSE_20190725.txt")
 out_file = "tickers.txt"
 MIN_PRICE = 18
 MAX_PRICE = 85
