@@ -8,22 +8,23 @@ from helpers import file_len
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 MAX_WAIT = 10
-DOWNLOAD_DIR = 'downloads'
-TICKERS_FILE = 'tickers.txt'
+DOWNLOAD_DIR = "downloads"
+TICKERS_FILE = "tickers.txt"
 
 logging.basicConfig(
-    filename='download.log',
+    filename="download.log",
     level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s: %(message)s',
+    format="%(asctime)s - %(name)s - %(levelname)s: %(message)s",
 )
-logging.getLogger('urllib3').setLevel(logging.WARNING)
-logging.getLogger('selenium').setLevel(logging.INFO)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("selenium").setLevel(logging.INFO)
 
 logger = logging.getLogger(__name__)
 
 
 class WebDriver:
     """ Context manager for a given WebDriver """
+
     def __init__(self, driver):
         self.driver = driver
 
@@ -59,14 +60,16 @@ def history():
     """
     download_dir = os.path.join(BASE_PATH, DOWNLOAD_DIR)
     tickers_file = os.path.join(BASE_PATH, TICKERS_FILE)
-    profile = get_browser_preferences(download_path=download_dir, save_to_disk_content_types=('text/csv',))
+    profile = get_browser_preferences(
+        download_path=download_dir, save_to_disk_content_types=("text/csv",)
+    )
     ticker_count = file_len(tickers_file)
 
     with WebDriver(webdriver.Firefox(firefox_profile=profile)) as driver:
-        with open(tickers_file, 'r') as t:
+        with open(tickers_file, "r") as t:
             for idx, line in enumerate(t):
                 ticker = line.strip().capitalize()
-                percent = 100 * (idx/ticker_count)
+                percent = 100 * (idx / ticker_count)
                 print(f"Getting '{ticker}' - {percent:.2f}%")
                 url = f"https://finance.yahoo.com/quote/{ticker}/history?p={ticker}"
                 logger.info(f"Getting history for {ticker}")
@@ -74,7 +77,7 @@ def history():
                     download(driver, url)
                 except Exception as e:
                     print(f"Problem downloading historical data for {ticker}")
-                    if hasattr(e, 'message'):
+                    if hasattr(e, "message"):
                         logger.warning(e.message)
                     else:
                         logger.warning(e)
@@ -94,7 +97,9 @@ def download(driver, url, final_sleep=1):
     logger.info(f"Getting URL: {url}")
     driver.get(url)
     logger.debug(f"Finding input element by xpath")
-    time_period_input = driver.find_element_by_xpath("//input[@data-test='date-picker-full-range']")
+    time_period_input = driver.find_element_by_xpath(
+        "//input[@data-test='date-picker-full-range']"
+    )
     logger.debug(f"Clicking date-picker input")
     time_period_input.click()
     logger.debug("Finding 'MAX' span")
@@ -102,9 +107,9 @@ def download(driver, url, final_sleep=1):
     logger.debug("Clicking 'MAX'")
     max_time_period.click()
     logger.debug("Finding buttons")
-    buttons = driver.find_elements_by_tag_name('button')
+    buttons = driver.find_elements_by_tag_name("button")
     logger.debug("Finding 'Done' button")
-    done_button = [b for b in buttons if b.text == 'Done'][0]
+    done_button = [b for b in buttons if b.text == "Done"][0]
     logger.debug("Clicking 'Done' button")
     done_button.click()
     logger.debug("Finding download link")
