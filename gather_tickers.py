@@ -1,21 +1,24 @@
+""" Functions to get and filter a list of tickers from the the .txt files from IN_FILES_DIR
+    .txt files in input directory are a download of EOD csv data files from eoddata.com.
+"""
 import os
 from decimal import Decimal
 
+from helpers import ls_l
 from ticker.fetch import fetch_unique_tickers, dedupe
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-in_files = ("NASDAQ_20190725.txt", "NYSE_20190725.txt")
-out_file = "tickers.txt"
-MIN_PRICE = 18
-MAX_PRICE = 85
+IN_FILES_DIR = 'input'
+OUT_FILE = "tickers.txt"
+MIN_PRICE = 15
+MAX_PRICE = 1200
 
 
-def gather_tickers():
+def gather_tickers(input_files):
     tickers = []
-    for f in in_files:
-        p = os.path.join(BASE_DIR, f)
-        with open(p, "r") as csvfile:
+    for f in input_files:
+        with open(f, "r") as csvfile:
             tickers.extend(
                 fetch_unique_tickers(
                     csvfile,
@@ -30,8 +33,9 @@ def gather_tickers():
 
 
 def write_tickers():
-    tickers = gather_tickers()
-    out_path = os.path.join(BASE_DIR, out_file)
+    input_files = (f for f in ls_l(os.path.join(BASE_DIR, IN_FILES_DIR)) if f.endswith('.txt'))
+    tickers = gather_tickers(input_files)
+    out_path = os.path.join(BASE_DIR, OUT_FILE)
     with open(out_path, "w") as output:
         print(f"Writing output to: '{out_path}")
         for ticker in tickers:

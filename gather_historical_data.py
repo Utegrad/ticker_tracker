@@ -2,12 +2,14 @@ import os
 import time
 
 import logging
-import requests
 from selenium import webdriver
-from selenium.common.exceptions import WebDriverException
+
+from helpers import file_len
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 MAX_WAIT = 10
+DOWNLOAD_DIR = 'downloads'
+TICKERS_FILE = 'tickers.txt'
 
 logging.basicConfig(
     filename='download.log',
@@ -20,20 +22,8 @@ logging.getLogger('selenium').setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def wait(fn):
-    def modified_fn(*args, **kwargs):
-        start_time = time.time()
-        while True:
-            try:
-                return fn(*args, **kwargs)
-            except (AssertionError, WebDriverException) as e:
-                if time.time() - start_time > MAX_WAIT:
-                    raise e
-                time.sleep(0.5)
-    return modified_fn
-
-
 class WebDriver:
+    """ Context manager for a given WebDriver """
     def __init__(self, driver):
         self.driver = driver
 
@@ -44,13 +34,13 @@ class WebDriver:
         self.driver.quit()
 
 
-def content_type(url):
-    h = requests.head(url, allow_redirects=True)
-    header = h.headers
-    return header.get('content-type').lower()
-
-
 def get_browser_preferences(download_path, save_to_disk_content_types):
+    """ Create a FirefoxProfile to control download and save to disk content behaviors in the browser
+
+    :param download_path: Where to save files set to always download
+    :param save_to_disk_content_types: list of content-type values to always save to disk
+    :return: FirefoxProfile()
+    """
     profile = webdriver.FirefoxProfile()
     profile.set_preference("browser.download.folderList", 2)
     profile.set_preference("browser.download.manager.showWhenStarting", False)
@@ -61,17 +51,14 @@ def get_browser_preferences(download_path, save_to_disk_content_types):
     return profile
 
 
-def file_len(fname):
-    counter = 0
-    with open(fname, 'r') as f:
-        for idx, line in enumerate(f):
-            counter += 1
-    return counter
-
-
 def history():
-    download_dir = os.path.join(BASE_PATH, 'downloads')
-    tickers_file = os.path.join(BASE_PATH, 'tickers.txt')
+    """ Download historical data for tickers in TICKERS_FILE from Yahoo and save it in DOWNLOAD_DIR
+
+    Use a Selenium WebDriver to download historical stock price data from Yahoo
+    :return: None
+    """
+    download_dir = os.path.join(BASE_PATH, DOWNLOAD_DIR)
+    tickers_file = os.path.join(BASE_PATH, TICKERS_FILE)
     profile = get_browser_preferences(download_path=download_dir, save_to_disk_content_types=('text/csv',))
     ticker_count = file_len(tickers_file)
 
@@ -94,7 +81,16 @@ def history():
                     continue
 
 
-def download(driver, url):
+def download(driver, url, final_sleep=1):
+    """ Given a WebDriver and a url get and click the download historical data link
+
+    :param driver: WebDriver instance to drive
+    :param url: URL for a ticker
+    :param final_sleep: seconds for the process to sleep after clicking download.
+        Done to avoid moving to the next URL too fast and getting stuck.
+
+    :return: None
+    """
     logger.info(f"Getting URL: {url}")
     driver.get(url)
     logger.debug(f"Finding input element by xpath")
@@ -116,7 +112,7 @@ def download(driver, url):
     logger.debug("Clicking download link")
     download_link.click()
     logger.debug("Sleep 3 seconds")
-    time.sleep(3)
+    time.sleep(1)
 
 
 if __name__ == "__main__":

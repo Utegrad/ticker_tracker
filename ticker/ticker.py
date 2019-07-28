@@ -10,4 +10,4 @@ class Ticker:
             return f"{self.ticker}"
 
     def __repr__(self):
-        return f"Ticker()"
+        return f"Ticker('{self.ticker}')"
