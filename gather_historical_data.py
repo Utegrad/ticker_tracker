@@ -9,7 +9,7 @@ from helpers import file_len
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 MAX_WAIT = 10
 DOWNLOAD_DIR = "downloads"
-TICKERS_FILE = "tickers.txt"
+TICKERS_FILE = "filtered_tickers.txt"
 
 logging.basicConfig(
     filename="download.log",
@@ -17,7 +17,7 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s: %(message)s",
 )
 logging.getLogger("urllib3").setLevel(logging.WARNING)
-logging.getLogger("selenium").setLevel(logging.INFO)
+logging.getLogger("selenium").setLevel(logging.DEBUG)
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +45,7 @@ def get_browser_preferences(download_path, save_to_disk_content_types):
     profile = webdriver.FirefoxProfile()
     profile.set_preference("browser.download.folderList", 2)
     profile.set_preference("browser.download.manager.showWhenStarting", False)
+    logger.debug(f"Setting download path to '{download_path}'")
     profile.set_preference("browser.download.dir", download_path)
     for ct in save_to_disk_content_types:
         profile.set_preference("browser.helerApps.neverAsk.openFile", ct)
@@ -52,20 +53,21 @@ def get_browser_preferences(download_path, save_to_disk_content_types):
     return profile
 
 
-def history():
+def download_history_files(tickers_file):
     """ Download historical data for tickers in TICKERS_FILE from Yahoo and save it in DOWNLOAD_DIR
 
     Use a Selenium WebDriver to download historical stock price data from Yahoo
     :return: None
     """
     download_dir = os.path.join(BASE_PATH, DOWNLOAD_DIR)
-    tickers_file = os.path.join(BASE_PATH, TICKERS_FILE)
+    tickers_file = os.path.join(BASE_PATH, tickers_file)
     profile = get_browser_preferences(
         download_path=download_dir, save_to_disk_content_types=("text/csv",)
     )
     ticker_count = file_len(tickers_file)
 
     with WebDriver(webdriver.Firefox(firefox_profile=profile)) as driver:
+        driver.maximize_window()
         with open(tickers_file, "r") as t:
             for idx, line in enumerate(t):
                 ticker = line.strip().capitalize()
@@ -84,12 +86,12 @@ def history():
                     continue
 
 
-def download(driver, url, final_sleep=1):
+def download(driver, url, post_download_sleep=2):
     """ Given a WebDriver and a url get and click the download historical data link
 
     :param driver: WebDriver instance to drive
     :param url: URL for a ticker
-    :param final_sleep: seconds for the process to sleep after clicking download.
+    :param post_download_sleep: seconds for the process to sleep after clicking download.
         Done to avoid moving to the next URL too fast and getting stuck.
 
     :return: None
@@ -116,9 +118,9 @@ def download(driver, url, final_sleep=1):
     download_link = driver.find_element_by_xpath("//a[@download]")
     logger.debug("Clicking download link")
     download_link.click()
-    logger.debug("Sleep 3 seconds")
-    time.sleep(1)
+    logger.debug(f"Sleep {post_download_sleep} seconds")
+    time.sleep(post_download_sleep)
 
 
 if __name__ == "__main__":
-    history()
+    download_history_files(tickers_file=TICKERS_FILE)

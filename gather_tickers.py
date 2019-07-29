@@ -11,8 +11,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 IN_FILES_DIR = "input"
 DOWNLOADED_DIR = "downloads"
-OUT_FILE = "tickers.txt"
-FILTERED_OUT = "filtered_tickers.txt"
+ALL_TICKERS_FILE = "tickers.txt"
+FILTERED_TICKERS_FILE = "filtered_tickers.txt"
 MIN_PRICE = 15
 MAX_PRICE = 1200
 
@@ -34,12 +34,12 @@ def gather_tickers(input_files):
     return all_tickers_unique
 
 
-def write_tickers():
+def all_tickers():
     input_files = (
         f for f in ls_l(os.path.join(BASE_DIR, IN_FILES_DIR)) if f.endswith(".txt")
     )
     tickers = gather_tickers(input_files)
-    out_path = os.path.join(BASE_DIR, OUT_FILE)
+    out_path = os.path.join(BASE_DIR, ALL_TICKERS_FILE)
     with open(out_path, "w") as output:
         print(f"Writing output to: '{out_path}")
         for ticker in tickers:
@@ -64,7 +64,7 @@ def filter_tickers():
     """
     remaining_tickers = []
     downloaded_tickers = list(downloaded())
-    with open(OUT_FILE, "r") as tickers:
+    with open(ALL_TICKERS_FILE, "r") as tickers:
         for t in tickers:
             t = t.strip()  # otherwise it has the newline character
             if has_punctuation(t):
@@ -73,7 +73,7 @@ def filter_tickers():
                 continue
             else:
                 remaining_tickers.append(t)
-    with open(FILTERED_OUT, 'w') as f:
+    with open(FILTERED_TICKERS_FILE, 'w') as f:
         for t in remaining_tickers:
             f.write(f"{t}\n")
 
