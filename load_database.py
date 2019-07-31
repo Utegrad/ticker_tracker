@@ -3,6 +3,7 @@ import datetime
 import logging
 import os
 import time
+import threading
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -12,7 +13,7 @@ from database.helpers import decimal_from_string, InvalidDecimalRecordDataExcept
 from database.models import Base, Ticker, Price
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-LOG_FILE = 'load_database.log'
+LOG_FILE = "load_database.log"
 TICKER_DOWNLOADS = os.getenv("TICKER_DOWNLOADS")
 ECHO = False
 
@@ -50,7 +51,7 @@ def files_with_extension(path, extension):
 
 
 def date_from_string(date_string):
-    dt = datetime.datetime.strptime(date_string, '%Y-%m-%d')
+    dt = datetime.datetime.strptime(date_string, "%Y-%m-%d")
     return dt.date()
 
 
@@ -59,19 +60,32 @@ def prices_from_reader(ticker, reader):
         try:
             yield Price(
                 ticker_id=ticker.id,
-                date=date_from_string(row['Date']),
-                open=decimal_from_string(row['Open']),
-                high=decimal_from_string(row['High']),
-                low=decimal_from_string(row['Low']),
-                close=decimal_from_string(row['Close']),
-                adj_close=decimal_from_string(row['Adj Close']),
-                volume=row['Volume'],
+                date=date_from_string(row["Date"]),
+                open=decimal_from_string(row["Open"]),
+                high=decimal_from_string(row["High"]),
+                low=decimal_from_string(row["Low"]),
+                close=decimal_from_string(row["Close"]),
+                adj_close=decimal_from_string(row["Adj Close"]),
+                volume=row["Volume"],
             )
         except InvalidDecimalRecordDataException as e:
-            logger.warning(f"Invalid string to decimal conversion for {ticker.ticker} at {row['Date']}.")
+            logger.warning(
+                f"Invalid string to decimal conversion for {ticker.ticker} at {row['Date']}."
+            )
             continue
         except Exception as e:
             raise e
+
+
+def get_thread(fn, engine, file_extension, csv_path):
+    return threading.Thread(
+        target=fn,
+        kwargs={
+            "engine": engine,
+            "csv_extension": file_extension,
+            "csv_path": csv_path,
+        },
+    )
 
 
 def load_database():
@@ -81,13 +95,13 @@ def load_database():
 
     session = get_session(engine=engine)
 
-    csv_extension = '.csv'
+    csv_extension = ".csv"
 
     #  Get a list of csv files from the TICKER_DOWNLOADS folder
     csv_files = files_with_extension(TICKER_DOWNLOADS, csv_extension)
 
     #  For each CSV file create a Ticker object in the database
-    symbols = (f.replace(csv_extension, '') for f in csv_files)
+    symbols = (f.replace(csv_extension, "") for f in csv_files)
     session.add_all([Ticker(ticker=symbol) for symbol in symbols])
     session.commit()
 
@@ -95,18 +109,35 @@ def load_database():
     csv_paths = (os.path.join(TICKER_DOWNLOADS, p) for p in csv_files)
     start_time = time.time()
 
-    for csv_path in csv_paths:
-        ticker_str = os.path.split(csv_path)[1].replace(csv_extension, '')
-        print(f"Importing price records for '{ticker_str}'.")
-        ticker = session.query(Ticker).filter_by(ticker=ticker_str).one()
+    threads = []
 
-        with open(csv_path, 'r') as f:
-            reader = csv.DictReader(f)
-            session.add_all(prices_from_reader(ticker, reader))
-            session.commit()
+    for csv_path in csv_paths:
+        threads.append(
+            get_thread(
+                fn=load_ticker,
+                engine=engine,
+                file_extension=csv_extension,
+                csv_path=csv_path,
+            )
+        )
+
+    for t in threads:
+        t.start()
+        t.join()
 
     elapsed_time = time.time() - start_time
     print(f"Total time taken: f{elapsed_time}")
+
+
+def load_ticker(engine, csv_path, csv_extension):
+    ticker_str = os.path.split(csv_path)[1].replace(csv_extension, "")
+    print(f"Importing price records for '{ticker_str}'.")
+    session = get_session(engine)
+    ticker = session.query(Ticker).filter_by(ticker=ticker_str).one()
+    with open(csv_path, "r") as f:
+        reader = csv.DictReader(f)
+        session.add_all(prices_from_reader(ticker, reader))
+    session.commit()
 
 
 if __name__ == "__main__":
