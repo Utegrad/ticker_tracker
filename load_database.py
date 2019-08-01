@@ -77,13 +77,13 @@ def prices_from_reader(ticker, reader):
             raise e
 
 
-def get_thread(fn, engine, file_extension, csv_path):
+def get_thread(fn, **kwargs):
     return threading.Thread(
         target=fn,
         kwargs={
-            "engine": engine,
-            "csv_extension": file_extension,
-            "csv_path": csv_path,
+            "engine": kwargs['engine'],
+            "csv_extension": kwargs['file_extension'],
+            "csv_path": kwargs['csv_path'],
         },
     )
 
@@ -112,17 +112,12 @@ def load_database():
     threads = []
 
     for csv_path in csv_paths:
-        threads.append(
-            get_thread(
-                fn=load_ticker,
-                engine=engine,
-                file_extension=csv_extension,
-                csv_path=csv_path,
-            )
-        )
+        kwargs = {"engine": engine, "file_extension": csv_extension, "csv_path": csv_path}
+        thread = get_thread(fn =load_ticker, **kwargs)
+        thread.start()
+        threads.append(thread)
 
     for t in threads:
-        t.start()
         t.join()
 
     elapsed_time = time.time() - start_time
