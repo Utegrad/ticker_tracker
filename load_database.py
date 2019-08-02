@@ -1,13 +1,14 @@
+import concurrent.futures
 import csv
 import datetime
 import logging
 import os
-import time
 import threading
-import concurrent.futures
+import time
+import itertools
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, scoped_session
 
 from database import settings as db_settings
 from database.helpers import decimal_from_string, InvalidDecimalRecordDataException
@@ -28,8 +29,8 @@ logging.basicConfig(
 
 
 logger = logging.getLogger(__name__)
+csv_extension = ".csv"
 
-thread_local = threading.local()
 
 def get_session(engine=None, echo=None):
     """ Return a sqlalchemy Session()
@@ -43,11 +44,10 @@ def get_session(engine=None, echo=None):
 
     if engine is None:
         engine = create_engine(db_settings.DB_STRING, echo=echo)
-
-    if not hasattr(thread_local, "session"):
-        Session = sessionmaker(bind=engine)
-        thread_local.session = Session()
-    return thread_local.session
+    session_factory = sessionmaker(bind=engine)
+    Session = scoped_session(session_factory)
+    session = Session()
+    return session
 
 
 def files_with_extension(path, extension):
@@ -99,8 +99,6 @@ def load_database():
 
     session = get_session(engine=engine)
 
-    csv_extension = ".csv"
-
     #  Get a list of csv files from the TICKER_DOWNLOADS folder
     csv_files = files_with_extension(TICKER_DOWNLOADS, csv_extension)
 
@@ -111,28 +109,29 @@ def load_database():
 
     #  For each CSV file create Price records for every record in the CSV file associated to that files Ticker()
     csv_paths = (os.path.join(TICKER_DOWNLOADS, p) for p in csv_files)
-    start_time = time.time()
+    try:
+        start_time = time.time()
 
-    threads = []
+        engine_data = itertools.zip_longest([], list(csv_paths)[:20], fillvalue=engine)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=WORKERS) as executor:
+            executor.map(load_ticker_wrapper, engine_data)
 
-    for csv_path in list(csv_paths)[:3]:
-        kwargs = {"engine": engine, "file_extension": csv_extension, "csv_path": csv_path}
-        thread = get_thread(fn =load_ticker, **kwargs)
-        thread.start()
-        threads.append(thread)
-
-    for t in threads:
-        t.join()
-
-    elapsed_time = time.time() - start_time
-    print(f"Total time taken: f{elapsed_time}")
+        elapsed_time = time.time() - start_time
+        print(f"Total time taken: f{elapsed_time}")
+    except Exception as e:
+        logger.exception("oops!")
 
 
-def load_ticker(engine, csv_path, csv_extension):
+def load_ticker_wrapper(engine_data):
+    load_ticker(engine=engine_data[0], csv_path=engine_data[1])
+
+
+def load_ticker(engine, csv_path):
     ticker_str = os.path.split(csv_path)[1].replace(csv_extension, "")
     print(f"Importing price records for '{ticker_str}'.")
     session = get_session(engine)
     ticker = session.query(Ticker).filter_by(ticker=ticker_str).one()
+    logger.debug(f"{ticker} from database for {ticker_str}")
     with open(csv_path, "r") as f:
         reader = csv.DictReader(f)
         session.add_all(prices_from_reader(ticker, reader))
