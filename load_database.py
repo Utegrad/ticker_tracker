@@ -4,6 +4,7 @@ import logging
 import os
 import time
 import threading
+import concurrent.futures
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -16,6 +17,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_FILE = "load_database.log"
 TICKER_DOWNLOADS = os.getenv("TICKER_DOWNLOADS")
 ECHO = False
+WORKERS = 5
 
 logging.basicConfig(
     filename=os.path.join(BASE_DIR, LOG_FILE),
@@ -27,6 +29,7 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+thread_local = threading.local()
 
 def get_session(engine=None, echo=None):
     """ Return a sqlalchemy Session()
@@ -41,9 +44,10 @@ def get_session(engine=None, echo=None):
     if engine is None:
         engine = create_engine(db_settings.DB_STRING, echo=echo)
 
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    return session
+    if not hasattr(thread_local, "session"):
+        Session = sessionmaker(bind=engine)
+        thread_local.session = Session()
+    return thread_local.session
 
 
 def files_with_extension(path, extension):
@@ -111,7 +115,7 @@ def load_database():
 
     threads = []
 
-    for csv_path in csv_paths:
+    for csv_path in list(csv_paths)[:3]:
         kwargs = {"engine": engine, "file_extension": csv_extension, "csv_path": csv_path}
         thread = get_thread(fn =load_ticker, **kwargs)
         thread.start()
