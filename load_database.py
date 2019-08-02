@@ -30,24 +30,11 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 csv_extension = ".csv"
-
-
-def get_session(engine=None, echo=None):
-    """ Return a sqlalchemy Session()
-
-    :param engine:  Defaults to creating a new session if engine is None
-    :param echo: Defaults to False, used to set echo parameter if creating an engine
-    :return: sqlalchemy session
-    """
-
-    echo = False if echo is None else echo
-
-    if engine is None:
-        engine = create_engine(db_settings.DB_STRING, echo=echo)
-    session_factory = sessionmaker(bind=engine)
-    Session = scoped_session(session_factory)
-    session = Session()
-    return session
+engine = create_engine(db_settings.DB_STRING, echo=ECHO)
+base = Base
+base.metadata.create_all(engine)
+session_factory = sessionmaker(bind=engine)
+Session = scoped_session(session_factory)
 
 
 def files_with_extension(path, extension):
@@ -72,7 +59,7 @@ def prices_from_reader(ticker, reader):
                 adj_close=decimal_from_string(row["Adj Close"]),
                 volume=row["Volume"],
             )
-        except InvalidDecimalRecordDataException as e:
+        except InvalidDecimalRecordDataException:
             logger.warning(
                 f"Invalid string to decimal conversion for {ticker.ticker} at {row['Date']}."
             )
@@ -93,17 +80,12 @@ def get_thread(fn, **kwargs):
 
 
 def load_database():
-    engine = create_engine(db_settings.DB_STRING, echo=ECHO)
-    base = Base
-    base.metadata.create_all(engine)
-
-    session = get_session(engine=engine)
-
     #  Get a list of csv files from the TICKER_DOWNLOADS folder
     csv_files = files_with_extension(TICKER_DOWNLOADS, csv_extension)
 
     #  For each CSV file create a Ticker object in the database
     symbols = (f.replace(csv_extension, "") for f in csv_files)
+    session = Session()
     session.add_all([Ticker(ticker=symbol) for symbol in symbols])
     session.commit()
 
@@ -119,17 +101,20 @@ def load_database():
         elapsed_time = time.time() - start_time
         print(f"Total time taken: f{elapsed_time}")
     except Exception as e:
-        logger.exception("oops!")
+        logger.exception(msg="Error inserting prices for tickers.")
+        raise e
+    finally:
+        Session.remove()
 
 
 def load_ticker_wrapper(engine_data):
-    load_ticker(engine=engine_data[0], csv_path=engine_data[1])
+    load_ticker(csv_path=engine_data[1])
 
 
-def load_ticker(engine, csv_path):
+def load_ticker(csv_path):
     ticker_str = os.path.split(csv_path)[1].replace(csv_extension, "")
     print(f"Importing price records for '{ticker_str}'.")
-    session = get_session(engine)
+    session = Session()
     ticker = session.query(Ticker).filter_by(ticker=ticker_str).one()
     logger.debug(f"{ticker} from database for {ticker_str}")
     with open(csv_path, "r") as f:
