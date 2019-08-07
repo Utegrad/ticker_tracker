@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Numeric
+from sqlalchemy import Column, Integer, String, Date, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.dialects.mysql import DOUBLE
 from sqlalchemy.orm import relationship
 
 Base = declarative_base()
@@ -24,11 +25,11 @@ class Price(Base):
     id = Column(Integer, primary_key=True)
     ticker_id = Column(Integer, ForeignKey('tickers.id'), nullable=False)
     date = Column(Date, nullable=False)
-    open = Column(Numeric, nullable=False)
-    high = Column(Numeric, nullable=False)
-    low = Column(Numeric, nullable=False)
-    close = Column(Numeric, nullable=False)
-    adj_close = Column(Numeric, nullable=False)
+    open = Column(DOUBLE, nullable=False)
+    high = Column(DOUBLE, nullable=False)
+    low = Column(DOUBLE, nullable=False)
+    close = Column(DOUBLE, nullable=False)
+    adj_close = Column(DOUBLE, nullable=False)
     volume = Column(Integer, nullable=False)
 
     ticker = relationship("Ticker", back_populates="prices")

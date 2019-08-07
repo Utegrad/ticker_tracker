@@ -18,7 +18,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_FILE = "load_database.log"
 TICKER_DOWNLOADS = os.getenv("TICKER_DOWNLOADS")
 ECHO = False
-WORKERS = 5
+WORKERS = 8
 
 logging.basicConfig(
     filename=os.path.join(BASE_DIR, LOG_FILE),
@@ -31,10 +31,13 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 csv_extension = ".csv"
 engine = create_engine(db_settings.DB_STRING, echo=ECHO)
-base = Base
-base.metadata.create_all(engine)
+
 session_factory = sessionmaker(bind=engine)
 Session = scoped_session(session_factory)
+
+base = Base
+logger.debug("Creating all tables from models")
+base.metadata.create_all(engine)
 
 
 def files_with_extension(path, extension):
@@ -80,25 +83,27 @@ def get_thread(fn, **kwargs):
 
 
 def load_database():
-    #  Get a list of csv files from the TICKER_DOWNLOADS folder
+    logger.debug("Get a list of csv files from the TICKER_DOWNLOADS folder")
     csv_files = files_with_extension(TICKER_DOWNLOADS, csv_extension)
 
-    #  For each CSV file create a Ticker object in the database
+    logger.debug("Get Tickers from CSV files")
     symbols = (f.replace(csv_extension, "") for f in csv_files)
     session = Session()
+    logger.debug("Adding all tickers to database")
     session.add_all([Ticker(ticker=symbol) for symbol in symbols])
     session.commit()
 
-    #  For each CSV file create Price records for every record in the CSV file associated to that files Ticker()
+    logger.debug(f"Getting CSV file paths from {TICKER_DOWNLOADS}")
     csv_paths = (os.path.join(TICKER_DOWNLOADS, p) for p in csv_files)
     try:
         start_time = time.time()
 
-        engine_data = itertools.zip_longest([], list(csv_paths)[:20], fillvalue=engine)
+        engine_data = itertools.zip_longest([], csv_paths, fillvalue=engine)
         with concurrent.futures.ThreadPoolExecutor(max_workers=WORKERS) as executor:
             executor.map(load_ticker_wrapper, engine_data)
 
         elapsed_time = time.time() - start_time
+        logger.info(f"Total time taken: f{elapsed_time}")
         print(f"Total time taken: f{elapsed_time}")
     except Exception as e:
         logger.exception(msg="Error inserting prices for tickers.")
@@ -113,6 +118,7 @@ def load_ticker_wrapper(engine_data):
 
 def load_ticker(csv_path):
     ticker_str = os.path.split(csv_path)[1].replace(csv_extension, "")
+    logger.debug(f"Importing price records for '{ticker_str}'.")
     print(f"Importing price records for '{ticker_str}'.")
     session = Session()
     ticker = session.query(Ticker).filter_by(ticker=ticker_str).one()
