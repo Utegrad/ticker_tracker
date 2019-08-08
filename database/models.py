@@ -35,4 +35,4 @@ class Price(Base):
     ticker = relationship("Ticker", back_populates="prices")
 
     def __repr__(self):
-        return f"<Price('{self.ticker}')"
+        return f"<Price('{self.ticker}')>"
