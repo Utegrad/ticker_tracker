@@ -1,3 +1,6 @@
+""" Download historical data for tickers in TICKERS_FILE from Yahoo and save it in DOWNLOAD_DIR
+    Use a Selenium WebDriver to download historical stock price data from Yahoo
+"""
 import os
 import time
 
