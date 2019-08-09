@@ -38,7 +38,7 @@ class WebDriver:
         self.driver.quit()
 
 
-def get_browser_preferences(download_path, save_to_disk_content_types):
+def browser_preferences(download_path, save_to_disk_content_types):
     """ Create a FirefoxProfile to control download and save to disk content behaviors in the browser
 
     :param download_path: Where to save files set to always download
@@ -64,7 +64,7 @@ def download_history_files(tickers_file):
     """
     download_dir = os.path.join(BASE_PATH, DOWNLOAD_DIR)
     tickers_file = os.path.join(BASE_PATH, tickers_file)
-    profile = get_browser_preferences(
+    profile = browser_preferences(
         download_path=download_dir, save_to_disk_content_types=("text/csv",)
     )
     ticker_count = file_len(tickers_file)
