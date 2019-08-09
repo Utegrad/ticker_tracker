@@ -2,6 +2,7 @@
 """ Functions to get and filter a list of tickers from the the .txt files from IN_FILES_DIR
     .txt files in input directory are a download of EOD csv data files from eoddata.com.
 """
+import logging
 import os
 from decimal import Decimal
 
@@ -16,6 +17,16 @@ ALL_TICKERS_FILE = "tickers.txt"
 FILTERED_TICKERS_FILE = "filtered_tickers.txt"
 MIN_PRICE = 15
 MAX_PRICE = 1200
+
+logging.basicConfig(
+    filename="gather_tickers.log",
+    level=logging.DEBUG,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("selenium").setLevel(logging.INFO)
+
+logger = logging.getLogger(__name__)
 
 
 def gather_tickers(input_files):
@@ -67,7 +78,7 @@ def downloaded():
 
 
 def filter_tickers():
-    """ Write FILTERD_TICKERS_FILE with tickers that don't need to be downloaded again.
+    """ Write FILTERED_TICKERS_FILE with tickers that don't need to be downloaded again.
 
     :return: None
     """
@@ -77,10 +88,13 @@ def filter_tickers():
         for t in tickers:
             t = t.strip()  # otherwise it has the newline character
             if has_punctuation(t):
+                logger.info(F"Skipping {t} - has punctuation")
                 continue
             elif t in downloaded_tickers:
+                logger.info(f"Skipping {t} - already downloaded")
                 continue
             else:
+                logger.info(f"Including {t}")
                 remaining_tickers.append(t)
     print(f"writing filtered tickers to '{FILTERED_TICKERS_FILE}'")
     with open(FILTERED_TICKERS_FILE, 'w') as f:
