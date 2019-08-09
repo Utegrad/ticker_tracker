@@ -59,6 +59,10 @@ def browser_preferences(download_path, save_to_disk_content_types):
 
 
 def tickers(tickers_file):
+    """ generator with each line of the given file strip() and upper()
+
+    :return generator for tickers in the given file
+    """
     with open(tickers_file, "r") as t:
         for line in t:
             ticker = line.strip().upper()
