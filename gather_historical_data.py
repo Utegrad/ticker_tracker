@@ -5,6 +5,7 @@ import os
 import time
 
 import logging
+import concurrent.futures
 from selenium import webdriver
 
 from helpers import file_len
@@ -13,6 +14,7 @@ BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 MAX_WAIT = 10
 DOWNLOAD_DIR = "downloads"
 TICKERS_FILE = "filtered_tickers.txt"
+MAX_WORKERS = 5
 
 logging.basicConfig(
     filename="download.log",
@@ -56,6 +58,13 @@ def browser_preferences(download_path, save_to_disk_content_types):
     return profile
 
 
+def tickers(tickers_file):
+    with open(tickers_file, "r") as t:
+        for line in t:
+            ticker = line.strip().upper()
+            yield ticker
+
+
 def download_history_files(tickers_file):
     """ Download historical data for tickers in TICKERS_FILE from Yahoo and save it in DOWNLOAD_DIR
 
@@ -64,6 +73,9 @@ def download_history_files(tickers_file):
     """
     download_dir = os.path.join(BASE_PATH, DOWNLOAD_DIR)
     tickers_file = os.path.join(BASE_PATH, tickers_file)
+
+
+
     profile = browser_preferences(
         download_path=download_dir, save_to_disk_content_types=("text/csv",)
     )
