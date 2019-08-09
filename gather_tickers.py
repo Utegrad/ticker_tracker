@@ -1,3 +1,4 @@
+#!/usr/bin/env python3 
 """ Functions to get and filter a list of tickers from the the .txt files from IN_FILES_DIR
     .txt files in input directory are a download of EOD csv data files from eoddata.com.
 """
@@ -81,6 +82,7 @@ def filter_tickers():
                 continue
             else:
                 remaining_tickers.append(t)
+    print(f"writing filtered tickers to '{FILTERED_TICKERS_FILE}'")
     with open(FILTERED_TICKERS_FILE, 'w') as f:
         for t in remaining_tickers:
             f.write(f"{t}\n")

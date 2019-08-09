@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """ Download historical data for tickers in TICKERS_FILE from Yahoo and save it in DOWNLOAD_DIR
     Use a Selenium WebDriver to download historical stock price data from Yahoo
 """
@@ -50,7 +51,7 @@ def browser_preferences(download_path, save_to_disk_content_types):
     profile = webdriver.FirefoxProfile()
     profile.set_preference("browser.download.folderList", 2)
     profile.set_preference("browser.download.manager.showWhenStarting", False)
-    logger.debug(f"Setting download path to '{download_path}'")
+    # logger.debug(f"Setting download path to '{download_path}'")
     profile.set_preference("browser.download.dir", download_path)
     for ct in save_to_disk_content_types:
         profile.set_preference("browser.helerApps.neverAsk.openFile", ct)
@@ -84,6 +85,7 @@ def download_history(ticker):
         logger.info(f"Getting history for {ticker}")
         try:
             download(driver, url)
+            print(f"Finished download for {ticker}")
         except Exception as e:
             print(f"Problem downloading historical data for {ticker}")
             if hasattr(e, "message"):
@@ -115,6 +117,7 @@ def download(driver, url, post_download_sleep=1.5):
 
     :return: None
     """
+    #  TODO: get the ticker value from the URL to include in logger messages to make them more useful
     logger.info(f"Getting URL: {url}")
     driver.get(url)
     logger.debug(f"Finding input element by xpath")
