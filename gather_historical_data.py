@@ -1,20 +1,20 @@
 """ Download historical data for tickers in TICKERS_FILE from Yahoo and save it in DOWNLOAD_DIR
     Use a Selenium WebDriver to download historical stock price data from Yahoo
 """
+import concurrent.futures
+import logging
 import os
 import time
 
-import logging
-import concurrent.futures
 from selenium import webdriver
-
-from helpers import file_len
+from selenium.webdriver.firefox.options import Options
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 MAX_WAIT = 10
 DOWNLOAD_DIR = "downloads"
 TICKERS_FILE = "filtered_tickers.txt"
 MAX_WORKERS = 5
+HEADLESS = True
 
 logging.basicConfig(
     filename="download.log",
@@ -69,43 +69,43 @@ def tickers(tickers_file):
             yield ticker
 
 
+def download_history(ticker):
+    download_dir = os.path.join(BASE_PATH, DOWNLOAD_DIR)
+    profile = browser_preferences(
+        download_path=download_dir, save_to_disk_content_types=("text/csv",)
+    )
+    options = Options()
+    options.headless = HEADLESS
+
+    with WebDriver(webdriver.Firefox(firefox_profile=profile, options=options)) as driver:
+        driver.maximize_window()
+        print(f"Getting '{ticker}'")
+        url = f"https://finance.yahoo.com/quote/{ticker}/history?p={ticker}"
+        logger.info(f"Getting history for {ticker}")
+        try:
+            download(driver, url)
+        except Exception as e:
+            print(f"Problem downloading historical data for {ticker}")
+            if hasattr(e, "message"):
+                logger.warning(e.message)
+            else:
+                logger.warning(e)
+
+
 def download_history_files(tickers_file):
     """ Download historical data for tickers in TICKERS_FILE from Yahoo and save it in DOWNLOAD_DIR
 
     Use a Selenium WebDriver to download historical stock price data from Yahoo
     :return: None
     """
-    download_dir = os.path.join(BASE_PATH, DOWNLOAD_DIR)
     tickers_file = os.path.join(BASE_PATH, tickers_file)
 
+    # to use threading for selenium download of history files
+    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        executor.map(download_history, tickers(tickers_file))
 
 
-    profile = browser_preferences(
-        download_path=download_dir, save_to_disk_content_types=("text/csv",)
-    )
-    ticker_count = file_len(tickers_file)
-
-    with WebDriver(webdriver.Firefox(firefox_profile=profile)) as driver:
-        driver.maximize_window()
-        with open(tickers_file, "r") as t:
-            for idx, line in enumerate(t):
-                ticker = line.strip().capitalize()
-                percent = 100 * (idx / ticker_count)
-                print(f"Getting '{ticker}' - {percent:.2f}%")
-                url = f"https://finance.yahoo.com/quote/{ticker}/history?p={ticker}"
-                logger.info(f"Getting history for {ticker}")
-                try:
-                    download(driver, url)
-                except Exception as e:
-                    print(f"Problem downloading historical data for {ticker}")
-                    if hasattr(e, "message"):
-                        logger.warning(e.message)
-                    else:
-                        logger.warning(e)
-                    continue
-
-
-def download(driver, url, post_download_sleep=2):
+def download(driver, url, post_download_sleep=1.5):
     """ Given a WebDriver and a url get and click the download historical data link
 
     :param driver: WebDriver instance to drive
