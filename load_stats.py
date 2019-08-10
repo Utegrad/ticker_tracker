@@ -13,6 +13,6 @@ session = Session()
 if __name__ == "__main__":
     prices = session.query(Price).\
                     filter(Price.ticker_id == Ticker.id).\
-                    filter(Ticker.ticker == 'AAPL')[:20]
+                    filter(Ticker.ticker == 'AAPL')[-200:]
     df = pd.DataFrame(prices)
     print(df)
