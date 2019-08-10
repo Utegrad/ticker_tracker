@@ -28,19 +28,6 @@ logging.getLogger("selenium").setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class WebDriver:
-    """ Context manager for a given WebDriver """
-
-    def __init__(self, driver):
-        self.driver = driver
-
-    def __enter__(self):
-        return self.driver
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.driver.quit()
-
-
 def browser_preferences(download_path, save_to_disk_content_types):
     """ Create a FirefoxProfile to control download and save to disk content behaviors in the browser
 
@@ -77,21 +64,20 @@ def download_history(ticker):
     )
     options = Options()
     options.headless = HEADLESS
-
-    with WebDriver(webdriver.Firefox(firefox_profile=profile, options=options)) as driver:
-        driver.maximize_window()
+    driver = None
+    try:
+        driver = webdriver.Firefox(firefox_profile=profile, options=options)
         print(f"Getting '{ticker}'")
         url = f"https://finance.yahoo.com/quote/{ticker}/history?p={ticker}"
         logger.info(f"Getting history for {ticker}")
         try:
             download(driver, url)
             print(f"Finished download for {ticker}")
-        except Exception as e:
+        except:
             print(f"Problem downloading historical data for {ticker}")
-            if hasattr(e, "message"):
-                logger.warning(e.message)
-            else:
-                logger.warning(e)
+            logger.exception()
+    finally:
+        driver.quit()
 
 
 def download_history_files(tickers_file):
