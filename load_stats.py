@@ -6,8 +6,8 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 from database import settings as db_settings
 from database.models import Base, Ticker, Price
 
-engine = create_engine(db_settings.DB_STRING, echo=False)
-Session = sessionmaker(bind=engine)
+engine = create_engine(db_settings.DB_STRING, echo=True, )
+Session = sessionmaker(bind=engine, )
 session = Session()
 
 if __name__ == "__main__":
