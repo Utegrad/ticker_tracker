@@ -11,6 +11,6 @@ Session = sessionmaker(bind=engine)
 session = Session()
 
 if __name__ == "__main__":
-    prices = session.query(Price)[:20]
+    prices = session.query(Price)[-200:].filter(Price.ticker == 'AAPL')
     df = pd.DataFrame(prices)
     print(df)
