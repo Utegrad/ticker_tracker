@@ -20,7 +20,7 @@ HEADLESS = True
 logging.basicConfig(
     filename="download.log",
     level=logging.DEBUG,
-    format="%(asctime)s - %(name)s - %(levelname)s: %(message)s",
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("selenium").setLevel(logging.INFO)
